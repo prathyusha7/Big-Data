@@ -1,0 +1,37 @@
+import org.apache.spark.SparkContext._;
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+import java.io._
+
+object UserRatingAvg {
+
+  def main(args: Array[String]): Unit = {
+    val sc = new SparkContext(new SparkConf().setAppName("UserRatingAvg"))
+
+     if (args.length != 4) {
+      println("Usage: yelp.UserRatingAvg <name> <jarfile> <input1> <input2> <output>")
+      System.exit(2)
+    }
+    val name = args(0)
+    val userFile = args(1)
+    val reviewFile=args(2)
+    val outputFile = args(3)
+    var lines = sc.textFile(userFile)
+    var map1 = lines.filter(_.contains(name))
+    var map2 = map1.map(line => line.split("\\^"))
+    var map3 = map2.map(line => (line(0), line(1)))
+
+    var lines2 = sc.textFile(reviewFile)
+    var y1 = lines2.map(line => line.split("\\^"))
+    val y2 = y1.map(line => (line(1), line(3).toDouble))
+
+    var joinedData = y2.join(map3)
+
+    var map4 = joinedData.map { case (key, (v, s)) => (key, (v, 1)) }
+    var map5 = map4.reduceByKey { case ((v1, c1), (v2, c2)) => (v1 + v2, c1 + c2) }
+    var map6 = map5.map { case (k, (v, c)) => (k, v.toDouble / c.toDouble) }
+    //map6.foreach(println)
+
+    map6.saveAsTextFile(outputFile)
+  }
+}
