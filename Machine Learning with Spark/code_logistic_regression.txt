@@ -1,0 +1,28 @@
+import org.apache.spark.mllib.classification.LogisticRegressionWithLBFGS
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.util.MLUtils
+
+// Load training data in LIBSVM format
+val data = MLUtils.loadLibSVMFile(sc, "/FileStore/tables/a2b3zbcl1490043381173/a2.txt")
+
+
+val Array(training, test) = data.randomSplit(Array(0.8, 0.2), seed = 11L)
+training.cache()
+
+// Run training algorithm to build the model
+val model = new LogisticRegressionWithLBFGS()
+  .setNumClasses(2)
+  .run(training)
+
+// Clear the prediction threshold so the model will return probabilities
+model.clearThreshold
+
+// Compute raw scores on the test set
+val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
+  val prediction = model.predict(features)
+  (prediction, label)
+}
+val MSE = predictionAndLabels.map{case(v, p) => math.pow((v - p), 2)}.mean()
+println("training Mean Squared Error = " + MSE)
+println("Accuracy ="+(100-MSE))
