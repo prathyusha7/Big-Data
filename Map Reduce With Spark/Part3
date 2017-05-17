@@ -1,0 +1,6 @@
+val dataset=sc.textFile("/yelp/business/business.csv").map(line=>line.split("\\^"))
+val filter=dataset.filter(line=>line(1).contains(" Stanford ")).map(line=>(line(0).toString,line(1).toString))
+val dataset2=sc.textFile("/yelp/review/review.csv").map(line=>line.split("\\^"))
+val jtable = dataset2.map(line=>(line(2).toString,(line(1).toString,line(3).toDouble)))
+val res=jtable.join(filter)
+res.toArray().foreach(line=>println(line._2._1))
