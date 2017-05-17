@@ -1,0 +1,6 @@
+val dataset=sc.textFile("/yelp/business/business.csv").map(line=>line.split("\\^"))
+val filter=dataset.filter(line=>line(1).contains("TX")).map(line=>(line(0).toString,line(1).toString))
+val dataset2=sc.textFile("/yelp/review/review.csv").map(line=>line.split("\\^"))
+val count=dataset2.map(line=>(line(2),1)).reduceByKey((a,b)=>a+b)
+val joinres=filter.join(count).distinct.collect()
+joinres.foreach(line=>println(line._1,line._2._2))
