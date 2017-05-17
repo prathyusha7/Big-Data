@@ -1,0 +1,10 @@
+val dataset=sc.textFile("/yelp/business/business.csv").map(line=>line.split("\\^"))
+val dataset1=dataset.map(line=>(line(0),line(1).toString+line(2).toString))
+val dataset2=sc.textFile("/yelp/review/review.csv").map(line=>line.split("\\^"))
+val sumofstars=dataset2.map(line=>(line(2),line(3).toDouble)).reduceByKey((a,b)=>a+b).distinct
+val count=dataset2.map(line=>(line(2),1)).reduceByKey((a,b)=>a+b).distinct
+val sumandcount=sumofstars.join(count)
+val review=sumandcount.map(a=>(a._1,a._2._1/a._2._2))
+val res=dataset1.join(review).distinct.collect()
+val sortedres=res.sortWith(_._2._2>_._2._2).take(10)
+sortedres.foreach(line=>println(line._1,line._2._1))
