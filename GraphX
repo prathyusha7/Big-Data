@@ -1,0 +1,67 @@
+//STEP I 
+//Loading data and defining a parser
+import org.apache.spark._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.util.IntParam
+import org.apache.spark.graphx._
+import org.apache.spark.graphx.util.GraphGenerators
+
+case class PropertyGraph(fromNodeId:Long,toNodeId:Long)
+
+def parsePropertyGraph(str: String): PropertyGraph = {
+ val line = str.split("\\W+")
+ PropertyGraph(line(0).toLong, line(1).toLong)
+}
+
+val textRDD = sc.textFile("/FileStore/tables/vob9koty1491173454887/CA_HepTh-9cc05.txt")
+
+val PropertyGraphRDD = textRDD.filter(_.charAt(0)!='#').map(parsePropertyGraph).cache()
+
+PropertyGraphRDD.collect.foreach(println)
+
+
+//STEP II
+//Edge and Vertex structure and property graph
+val vertices = PropertyGraphRDD.map(PropertyGraph => (PropertyGraph.fromNodeId.toLong, PropertyGraph.fromNodeId)).distinct
+
+val edges: RDD[Edge[String]] =  PropertyGraphRDD.map(PropertyGraph => Edge(PropertyGraph.fromNodeId.toLong, PropertyGraph.toNodeId.toLong, ""))
+ 
+val graph = Graph(vertices, edges)
+
+
+
+//STEP III
+//Nodes with highest outdegree and number of outgoing edges
+//a
+def max(a: (VertexId, Int), b: (VertexId, Int)): (VertexId, Int) = {
+ if (a._2 > b._2) a else b
+}
+
+val maxOutDegree= graph.outDegrees.reduce(max)
+maxOutDegree
+
+val x=graph.edges.count()
+println("The number of outgoing edges are "+x/2)
+
+//b
+val maxInDegree: (VertexId, Int) = graph.inDegrees.reduce(max)
+val x=graph.edges.count()
+println("The number of incoming edges are "+x/2)
+
+//c
+val ranks = graph.pageRank(0.1).vertices
+val temp=ranks.sortBy(_._2,false)
+temp.take(5)
+
+//d
+val cc = graph.connectedComponents().vertices
+println(cc.collect().mkString("\n"))
+
+//e
+val graph1= graph.partitionBy(PartitionStrategy.RandomVertexCut)
+val triCounts = graph1.triangleCount().vertices
+val temp=triCounts.sortBy(_._2,false)
+temp.take(5)		
+	
+
+	
